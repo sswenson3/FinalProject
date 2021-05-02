@@ -113,7 +113,7 @@ string_declension <- function (verbum) {
     #get rid of line control characters 
 	  declension<- str_replace_all(declension, ".*Adverb:.*\\r\\n","")
     declension <- str_replace_all(declension, "\\r\\n|\\t|,"," ") 
-    declension <- str_replace_all(declension, "\\s+|\\r\\n|\\t|,|/"," ")
+    declension <- str_replace_all(declension, "\\s+|\\r\\n|\\t|,|/|-"," ")
     #get rid of unwanted characters from html table
     declension <- str_replace_all(declension, "\\bm\\b|\\bf\\b|\\bn\\b|\\.|^.\\s+$|Nom|Gen|Dat|Acc|Abl|Voc|SINGULAR|PLURAL|Superlative|Comparative|","")
 	
@@ -124,18 +124,8 @@ string_declension <- function (verbum) {
 }
 
 get_declension <- function (verbum, english) {
-    declension <- read_file(glue ("./Data/{verbum}.declension.raw"))
-    #get rid of line control characters 
-	  declension<- str_replace_all(declension, ".*Adverb:.*\\r\\n","")
-    declension <- str_replace_all(declension, "\\r\\n|\\t|,"," ") 
-    declension <- str_replace_all(declension, "\\s+|\\r\\n|\\t|,"," ")
-    #get rid of unwanted characters from html table
-    declension <- str_replace_all(declension, "\\bm\\b|\\bf\\b|\\bn\\b|\\.|^.\\s+$|Nom|Gen|Dat|Acc|Abl|Voc|SINGULAR|PLURAL|Superlative|Comparative|","")
-	
-    declension <- str_replace_all(declension, "\\s+"," ")
-    declension <- str_replace_all(declension, "\\s+"," ")
-	  declension <- str_replace_all(declension, "^\\s|\\s$","")
-    w <- tibble( verba = qq(declension)) %>% mutate(LatinStem = hunspell_stem(verba,dict = latin)) %>% unnest(LatinStem) %>% select(LatinStem ) %>% distinct() %>% mutate(English =glue({english}))
+    declension <- string_declension(glue({verbum}))
+    w <- tibble( verba = qq(declension)) %>% mutate(LatinStem = hunspell_stem(verba,dict = latin))      %>% unnest(LatinStem) %>% select(LatinStem ) %>% distinct() %>% mutate(English =glue({english}))
 }
 
 ```
@@ -147,6 +137,9 @@ get_declension <- function (verbum, english) {
  And a  collection of common Latin adjectives:
  kind, right (direction), left , bad, good, diligent, many, only,
  none, one, swift, strong,old  
+```{r}
+
+```
  
 The hypothesis is that cross section of common descriptive words could give us a sense 
 of faithfulness to an original edition or translation.  This approach can later be expanded by including synonyms in each language of interest and some context via NLP could assist in discriminating a bit further. 
@@ -242,14 +235,7 @@ caeruleus
 This is interesting.  This word has a compound comparative and superlative but preserves the earlier forms.  
 
 ```{r}
-declension <- read_file("Data/caeruleus.declension.raw") 
-declension<- str_replace_all(declension, ".*Adverb:.*\\r\\n","")
-declension <- str_replace_all(declension, "\\r\\n|\\t|,"," ") 
-declension <- str_replace_all(declension, "\\s+|\\r\\n|\\t|,"," ")
-#get rid of unwanted characters from html table
-declension <- str_replace_all(declension, "\\bm\\b|\\bf\\b|\\bn\\b|\\.|^.\\s+$|Nom|Gen|Dat|Acc|Abl|Voc|SINGULAR|PLURAL|Superlative|Comparative|","")
-declension <- str_replace_all(declension, "\\s+"," ")  
-declension <- str_replace_all(declension, "^\\s|\\s$","")
+declension <- string_declension("caeruleus") 
 declension
 ```
 So, we'll just omit the helping adverb for blue for our concordance since the  unadorned stem will still appear anywhere it is used. 
@@ -288,4 +274,124 @@ amicus <- amicus %>% filter(!LatinStem %in% qq("amicvi amicio"))
 concordance<- add_row(concordance,amicus)
 concordance
 ```
+
+The word Dexter's declension is different.   It has alternate forms available in it's declension.  So I've refactored the declension utilities. Added the '/' as a delimiter to handle.
+
+```{r}
+
+declension <- read_file("Data/dexter.declension.raw")
+declension<- str_replace_all(declension, ".*Adverb:.*\\r\\n","")
+declension <- str_replace_all(declension, "\\r\\n|\\t|,"," ") 
+declension <- str_replace_all(declension, "\\s+|\\r\\n|\\t|,"," ")
+declension
+
+```
+```{r}
+declension <- string_declension("dexter")
+declension
+```
+That worked so proceeding as before. 
+```{r}
+dexter <- get_declension("dexter","right")
+dexter
+```
+All of these are valid so adding to the concordance. 
+
+```{r}
+concordance<- add_row(concordance,dexter)
+concordance
+```
+```{r}
+sinister <- get_declension("sinister","left")
+sinister
+```
+```{r}
+concordance<- add_row(concordance,sinister)
+concordance
+```
+Malus, or 'evil,bad' turns out to be irregular and changes its form. I find this amusing that evil doesn't follow the rules.  
+```{r}
+print(string_declension("malus"))
+```
+The declension doesn't appear to cause any problems with tools developed so far so we'll proceed as usual 
+
+```{r}
+malus <- get_declension("malus","bad")
+malus
+```
+```{r}
+malus <- malus %>% filter(! LatinStem %in% qq("peioro malvi ") )
+concordance <- add_row (concordance, malus)
+concordance
+
+bonus <- get_declension("bonus","good")
+bonus
+```
+
+```{r}
+bonus <- bonus %>% filter(! LatinStem %in% qq("melioro melium") )
+concordance <- add_row (concordance, bonus)
+concordance
+
+```
+```{r}
+diligens <- get_declension("diligens","diligent")
+diligens
+```
+
+```{r}
+diligens <- diligens %>% filter (! LatinStem %in% qq("diligo"))
+concordance <- add_row(concordance,diligens)
+concordance
+```
+We run into another issue in the irregulat declension of multus where certain forms don't exist and are represented by  - 
+
+```{r}
+declension <- read_file("Data/multus.declension.raw")
+declension<- str_replace_all(declension, ".*Adverb:.*\\r\\n","")
+declension <- str_replace_all(declension, "\\r\\n|\\t|,"," ") 
+declension <- str_replace_all(declension, "\\s+|\\r\\n|\\t|,"," ")
+declension
+
+```
+Added a rule to our regular expression 
+
+```{r}
+print(string_declension("multus"))
+multus <- get_declension("multus","many")
+multus 
+```
+And proceeded as usual 
+```{r}
+multus <- multus %>% filter (! LatinStem %in% qq("pluvi"))
+concordance <- add_row(concordance,multus)
+concordance
+```
+
+```{r}
+solus <- get_declension("solus","only")
+solus
+```
+
+```{r}
+solus <- solus %>% filter (! LatinStem %in% qq("solvi soleo"))
+concordance <- add_row(concordance,solus)
+concordance
+```
+
+```{r}
+
+declension <- read_file("Data/nullus.declension.raw")
+declension<- str_replace_all(declension, ".*Adverb:.*\\r\\n","")
+declension <- str_replace_all(declension, "\\r\\n|\\t|,"," ") 
+declension <- str_replace_all(declension, "\\s+|\\r\\n|\\t|,"," ")
+declension
+```
+
+Another twist. this time it will take manual intervention to clean it.
+First we will collect all the words. remove the extraneous endings then add the missing forms and then stem the result into a mini-concordance, and verify for valid forms.  We will modify get_declension to accept verba as a list 
+```{r}
+
+```
+
 
