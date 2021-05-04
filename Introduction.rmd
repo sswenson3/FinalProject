@@ -1,0 +1,47 @@
+---
+title: "Grading Translations with Text Analytics"
+author: "Steven Swenson"
+date: "2/2/2021"
+output: html_document
+---
+## Introduction
+
+Basic Text analytics, also known as text mining, can be used to glean information or data from unstructured sources such as books or prose.  Initially, after watching a video on YouTube (Moffit 2020) talking about Introduction of color into literature has a specific order I wondered whether we could use text analytics to determine approximately when in a civilization a work was created.  Expanding on that perhaps we could  identify a specfic period or decade that a work was created based on it's thumbprint derived from analyzing its text as data.   
+
+Immediately, a problem was encountered. Performing the initial analysis showed that translators had not been faithful to the original text!  So, I decided to  see if we can measure a translation's reliability.  I would construct a word frequency analysis and propose a rule of measure.  The words used would be common adjectives such as colors, sizes, distances. The measure would be the frequency each word appears/total words and the grade of a particular work might be the weighted average of all of these. 
+
+I would use as controls original works Aenid, Odyssey, Illiad, and an English 1st edition publication
+
+I would then grade three translations for each of these scored against various translations or in the case of the English work multiple editions.  I would expect that we may see divergence in our grade among translations but a smaller divergence between various editions of the same book.      
+
+## Packages Required
+
+tidyverse  provides access to dplyr and tidy data 
+
+tidytext provides tidy textmining interface and tokenizer 
+
+hunspell provides dictionary and stemming functions
+
+gutenbergr provides access to the online guntenberg project and works online
+
+jsonlite provides web service access
+
+
+
+
+
+## Data Preparation
+
+## Exploratory Data Analysis
+
+## Summary
+
+
+
+Sources
+
+
+
+ Moffit, Mitchell. "Why The Ancient Greeks Couldn't See Blue." Youtube, uploaded by AsapSCIENCE. 20 Nov 2020, https://www.youtube.com/watch?v=D1-WuBbVe2E,
+
+

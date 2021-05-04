@@ -5,6 +5,7 @@ output: html_notebook
 
 Loading our Libraries 
 ```{r}
+library(DBI)
 library(tidyverse)
 library(tidytext)
 library(hunspell)
@@ -123,8 +124,12 @@ string_declension <- function (verbum) {
 	declension <- str_replace_all(declension, "^\\s|\\s$","")
 }
 
-get_declension <- function (verbum, english) {
-    declension <- string_declension(glue({verbum}))
+get_declension <- function (verbum, english, forms=NULL) {
+    if (is.null(forms)){
+      declension <- string_declension(glue({verbum}))
+    } else {
+      declension <- forms
+    }
     w <- tibble( verba = qq(declension)) %>% mutate(LatinStem = hunspell_stem(verba,dict = latin))      %>% unnest(LatinStem) %>% select(LatinStem ) %>% distinct() %>% mutate(English =glue({english}))
 }
 
@@ -176,6 +181,23 @@ concordance <- add_row(concordance, albus)
 concordance
 
 ```
+```{r}
+candidus <- get_declension("candidus","white")
+candidus
+```
+
+ 
+
+```{r}
+
+concordance <- add_row(concordance, candidus)
+
+concordance
+
+```
+
+
+
 
 ```{r}
 ruber <- get_declension("ruber","red")
@@ -389,9 +411,287 @@ declension
 ```
 
 Another twist. this time it will take manual intervention to clean it.
-First we will collect all the words. remove the extraneous endings then add the missing forms and then stem the result into a mini-concordance, and verify for valid forms.  We will modify get_declension to accept verba as a list 
+First we will collect all the words. remove the extraneous endings then add the missing forms and then stem the result into a mini-concordance, and verify for valid forms.  We will modify get_declension to accept verba as a list.
+
+Regular expressions were not matching characters as expected, using other methods to remove "ī" and 
+"ō" from the list.  Got position by matching REGEX wildcard for single character entries  and then used lapply/sapply and indexing to remove the entries. 
+
+
 ```{r}
+declension <- qq(string_declension("nullus"))
+declension
+# remove  single character entries 
+remove <- lapply (declension, function(ch) grep ("^.$", ch) )
+! sapply(remove,function(x) length(x) >0 )
+declension <- declension[! sapply(remove,function(x) length(x) >0 )]
+declension
+```
+
+Next remove ae and then add the alternate entries
+```{r}
+remove <- lapply (declension, function(ch) grep ("^ae$", ch) )
+! sapply(remove,function(x) length(x) >0 )
+declension <- declension[! sapply(remove,function(x) length(x) >0 ) ]
+declension <- c(declension, qq("nūllī nūllae nūllī nūllō nūllae nūllō"))
+declension
+
 
 ```
+```{r}
+nullus <- get_declension("nullus","none",forms = declension)
+nullus
+concordance<-add_row(concordance,nullus)
+concordance
+```
+```{r}
+unus <- get_declension("unus","one")
+unus
+unus <- unus %>% filter(!LatinStem %in% qq("unii unio"))
+concordance <- add_row(concordance,unus)
+concordance
+```
+```{r}
+celer <- get_declension("celer","swift")
+celer
+
+celer <- celer %>% filter(!LatinStem %in% qq("celo celero"))
+concordance <- add_row(concordance,celer)
+concordance
+```
+
+
+```{r}
+fortis <- get_declension("fortis","strong")
+fortis
+concordance <- add_row(concordance,fortis)
+concordance
+```
+```{r}
+vetus <- get_declension("vetus","old")
+vetus
+```
+```{r}
+vetus <- vetus %>% filter(!LatinStem %in% qq("i ii vetero vetvi vetero veto veterrimus veterrimvs vetustus"))
+vetus
+concordance<-add_row(concordance,vetus)
+concordance
+
+
+```
+Adding a lookup function: 
+```{r}
+lookup = function(word) { 
+  concordance %>% 
+    filter(LatinStem == word) %>% 
+    select(English)
+}
+
+```
+
+
+
+This completes our proposed concordance.  Next we'll load in an original Latin manuscript, tokenize it , stem these words , Join our concordance to this then perform an frequency analysis on the result.   This will be our base line to compare translations. 
+
+Using gutenbergr I will load the text of the Aenied in Latin and several of its english translations 
+.
+
+```{r}
+gutenberg_metadata %>% select(title,author,gutenberg_id,language) %>% filter(grepl("[Ae|Æ]neid",title) & author=="Virgil")
+
+TheLatinAeneid <- gutenberg_download(227)   
+TheLatinAeneid
+TranslationAeneid228     <- gutenberg_download(228)
+TranslationAeneid228
+TranslationAeneid18466   <- gutenberg_download(18466)
+TranslationAeneid18466
+TranslationAeneid22456   <- gutenberg_download(22456)
+TranslationAeneid22456
+TranslationAeneid29358   <- gutenberg_download(29358)
+TranslationAeneid29358
+TranslationAeneid49844   <- gutenberg_download(49844)
+TranslationAeneid49844
+
+
+```
+```{r}
+
+TranslationAeneid228     <- gutenberg_download(228)
+TranslationAeneid18466   <- gutenberg_download(18466)
+TranslationAeneid22456   <- gutenberg_download(22456)
+TranslationAeneid29358   <- gutenberg_download(29358)
+TranslationAeneid49844   <- gutenberg_download(49844)
+
+
+```
+Now that we have a source with concordance to look at and five different translations we can start to ask some questions.  First how do they compare in raw size? 
+
+```{r}
+Text_sizes <- tibble (title = "TheLatinAeneid", wordcount =  TheLatinAeneid %>% unnest_tokens(word,text)%>% nrow())
+Text_sizes <- add_row(Text_sizes,title = "TranslationAeneid228", wordcount =  TranslationAeneid228 %>% unnest_tokens(word,text)%>% nrow())
+Text_sizes <- add_row(Text_sizes,title = "TranslationAeneid18466", wordcount =  TranslationAeneid18466 %>% unnest_tokens(word,text)%>% nrow())
+Text_sizes <- add_row(Text_sizes,title = "TranslationAeneid22456", wordcount =  TranslationAeneid22456 %>% unnest_tokens(word,text)%>% nrow())
+Text_sizes <- add_row(Text_sizes,title = "TranslationAeneid29358", wordcount =  TranslationAeneid29358 %>% unnest_tokens(word,text)%>% nrow())
+Text_sizes <- add_row(Text_sizes,title = "TranslationAeneid49844", wordcount =  TranslationAeneid49844 %>% unnest_tokens(word,text)%>% nrow())
+
+Text_sizes
+Text_sizes %>% ggplot( aes(title,wordcount))+
+  geom_col(fill = ifelse(Text_sizes$title =="TheLatinAeneid", 'red','black'))+coord_flip()+theme(axis.text.x = element_text(angle = 90))
+```
+
+
+```{r}
+theme(axis.text.x = element_text(angle = 90))
+```
+
+
+```{r}
++ coord_flip() +
+  labs(title="Text wordcounts in various editions of 'TheAeneid' by Virgil")
+```
+
+
+Right away we can see that the information contained in each edition varies by a significant amount. This can be explained by front matter difference, different approaches to translation, and additional matter inserted into the edition.
+
+So the next thing to attempt... can we see how faithful each edition is to the original? To do this we will attempt to construct a word frequency 'yardstick'   from the original Latin work and apply it to each of the editions in turn.  
+
+```{r}
+Analysis <-TheLatinAeneid %>% unnest_tokens(word,text)
+Analysis$LatinStem<- Analysis$word %>% hunspell_stem( dict=latin ) %>% lapply( function(x) paste(x, collapse = " ")) %>% unlist()
+
+
+
+#  con <- dbConnect(RSQLite::SQLite(), ":memory:")
+# # 
+#  dbCreateTable(con,"concordance",concordance)
+#  dbWriteTable(con,"concordance",concordance,overwrite=T)
+#  dbCreateTable(con,"analysis", Analysis)
+#  dbWriteTable(con,"analysis", Analysis,overwrite=T)
+# # 
+# # 
+#  dbListTables(con)
+# # 
+# #dbDisconnect(con)
+
+ 
+# test <- dbGetQuery(con, "select word,analysis.LatinStem as LatinStems,concordance.LatinStem ,English from analysis,concordance where analysis.LatinStem like '% '||concordance.LatinStem or analysis.LatinStem like '% '||concordance.LatinStem||' %' or analysis.LatinStem like concordance.LatinStem||' %'") 
+ 
+```
+```{r}
+
+Analysis<-Analysis %>% mutate(English="")
+#foreach row of analysis 
+for( row in 1:nrow(Analysis)){
+  stem <- Analysis[row, "LatinStem"]
+  if ( ! is_tibble(stem)){ 
+    print("not a tibble")
+  }else{
+    #print(glue("row:{row}:tibble:{stem}"))
+    #glimpse(stem)
+    stems = qq(stem %>% pull())
+    if (length(stems) < 1) {
+      #print ("skipping")
+      next
+    }
+    for(LatinStem in stems) {
+      english <- lookup(LatinStem) %>% pull()
+      if ( length(english ) == 0 ){
+        next
+      }else{
+        Analysis[row,"English"] = english
+      }
+    }#end for 
+  }#Else-fi
+}#For row 
+    
+
+
+```
+
+
+Now that we have an English word assigned to each Latin word that is in our concordance we can perform a word-frequency analysis on the original Latin work. 
+```{r}
+
+wf = Analysis %>% select(English) %>% filter(! English =="" ) %>% count(English)
+wf
+
+
+
+```
+```{r}
+concordance_words = as.vector( concordance %>% select(English) %>% pull())
+wfAnalysis<- wf %>% pivot_wider(names_from = English, values_from = n) %>% mutate(WorkTitle = 'TheLatinAeneid') %>% select(WorkTitle,everything())
+wfAnalysis
+
+
+
+```
+```{r}
+# TranslationAeneid228     <- gutenberg_download(228)
+# TranslationAeneid18466   <- gutenberg_download(18466)
+# TranslationAeneid22456   <- gutenberg_download(22456)
+# TranslationAeneid29358   <- gutenberg_download(29358)
+# TranslationAeneid49844   <- gutenberg_download(49844)
+
+wf = TranslationAeneid228 %>% unnest_tokens(word,text) %>%  filter( word %in% concordance_words)%>% select(word)  %>% count(word)
+
+wf <- wf %>% pivot_wider(names_from = word, values_from = n) %>% mutate(WorkTitle = 'TranslationAeneid228') %>% select(WorkTitle,everything())
+
+wfAnalysis <- add_row(wfAnalysis,wf)
+
+
+wf = TranslationAeneid18466 %>% unnest_tokens(word,text) %>%  filter( word %in% concordance_words)%>% select(word)  %>% count(word)
+
+wf <- wf %>% pivot_wider(names_from = word, values_from = n) %>% mutate(WorkTitle = 'TranslationAeneid18466') %>% select(WorkTitle,everything())
+ 
+wfAnalysis <- add_row(wfAnalysis,wf)
+
+
+wf = TranslationAeneid22456 %>% unnest_tokens(word,text) %>%  filter( word %in% concordance_words)%>% select(word)  %>% count(word)
+
+wf <- wf %>% pivot_wider(names_from = word, values_from = n) %>% mutate(WorkTitle = 'TranslationAeneid22456') %>% select(WorkTitle,everything())
+ 
+wfAnalysis <- add_row(wfAnalysis,wf)
+
+wf = TranslationAeneid29358 %>% unnest_tokens(word,text) %>%  filter( word %in% concordance_words)%>% select(word)  %>% count(word)
+
+wf <- wf %>% pivot_wider(names_from = word, values_from = n) %>% mutate(WorkTitle = 'TranslationAeneid29358') %>% select(WorkTitle,everything())
+ 
+wfAnalysis <- add_row(wfAnalysis,wf)
+
+wf = TranslationAeneid49844 %>% unnest_tokens(word,text) %>%  filter( word %in% concordance_words)%>% select(word)  %>% count(word)
+
+wf <- wf %>% pivot_wider(names_from = word, values_from = n) %>% mutate(WorkTitle = 'TranslationAeneid49844') %>% select(WorkTitle,everything())
+ 
+wfAnalysis <- add_row(wfAnalysis,wf)
+
+
+wfAnalysis
+```
+```{r}
+
+ggplot(longwfAnalysis %>% filter(WorkTitle=="TheLatinAeneid" ), aes(words,count,fill=WorkTitle)) + geom_col()+theme(axis.text.x = element_text(angle = 90))
+
+ggplot(longwfAnalysis %>% filter(WorkTitle=="TranslationAeneid228" ), aes(words,count,fill=WorkTitle)) + geom_col()+theme(axis.text.x = element_text(angle = 90))
+
+ggplot(longwfAnalysis %>% filter(WorkTitle=="TranslationAeneid18466" ), aes(words,count,fill=WorkTitle)) + geom_col()+theme(axis.text.x = element_text(angle = 90))
+
+ggplot(longwfAnalysis %>% filter(WorkTitle=="TranslationAeneid22456" ), aes(words,count,fill=WorkTitle)) + geom_col()+theme(axis.text.x = element_text(angle = 90))
+
+ggplot(longwfAnalysis %>% filter(WorkTitle=="TranslationAeneid29358" ), aes(words,count,fill=WorkTitle)) + geom_col()+theme(axis.text.x = element_text(angle = 90))
+
+ggplot(longwfAnalysis %>% filter(WorkTitle=="TranslationAeneid49844" ), aes(words,count,fill=WorkTitle)) + geom_col()+theme(axis.text.x = element_text(angle = 90))
+
+ggplot(longwfAnalysis, aes(words,count,fill=WorkTitle)) + geom_col(position = 'fill')+theme(axis.text.x = element_text(angle = 90))
+```
+## Conclusion
+
+It appears that a collection of common adjectives can be shown to give a measure of 'reliability'  of a translation.  
+
+## Further Research 
+
+A number of things could enhance this investigation, expanding to multiple ediotions of the same book in the same language should show us a 'control'  in natural divergence as more material is added or revised in each edition.   
+
+Additional context clues using NLP could enhance or eliminate a need for a concordance.  A broader concordance might capture a more solid signature. Development of a metric to quantify 'distance'  from the original or first edition could be ddeveloped based on the wf-signature of the original document.   
+
 
 
