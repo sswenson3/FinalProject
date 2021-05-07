@@ -1,37 +1,94 @@
 ---
-title: "R Notebook"
+title: "Developing a Metric for Measuring Translation Faithfulness R Notebook"
 output: html_notebook
 ---
+## Introduction
+
+Basic Text analytics, also known as text mining, can be used to glean information or data from unstructured sources such as books or prose.  Initially, after watching a video on YouTube (Moffit 2020) talking about Introduction of color into literature has a specific order I wondered whether we could use text analytics to determine approximately when in a civilization a work was created.  Expanding on that perhaps we could identify a specific period that a work was created based on it's thumbprint derived from analyzing its text as data. One of the works cited in the video was "The Iliad" and that the word blue was not used.  So I performed a quick analysis of this work.
+
+Immediately, a problem was encountered. Performing the initial analysis showed that translators had not been faithful to the original text!  
+
+```{r,eval=F, echo = T}
+Illiad %>% colorWords()
+#### A tibble: 6 x 2
+  word       n
+  <chr>  <int>
+1 black     99
+2 blue      14
+3 green     12
+4 red       16
+5 white     50
+6 yellow    10
+
+
+```
+
+This lead to the question of whether I can judge the reliability of a translation by using text analytics on a set of commonly used adjectives.   I chose adjectives as they are part of descriptions and less likely to fall prone to idiomatic use with meanings other than literal like verbs and nouns might. 
+
+I would construct a word frequency analysis and propose a rule of measure.  The words used would be common adjectives such as colors, sizes, distances. We would then attempt to develop a distance metric to show how 'close' a given translation is to the original text. The original text we would use will be the Aeneid by Virgil, a Latin saga about the mythic origins of the Roman people following the fall of Troy, sort of a sequel/spinoff of Homer's Odyssey saga.   
+
+
+## Packages Required
+
+- tidyverse -- Provides access to dplyer and tidy tools for handling data frames
+- tidytext  -- Provides tidy style tools for text mining both analytics and analysis.
+- hunspell  -- This library provides access to some NLP (Natural Language Processing) functions that will allow us to perform deeper analysis based on language rules and relations.  This library is one that is popularly used to perform spellchecking in many systems and applications.
+- glue      -- This provides a simple variable interpolation interface, simplifying some syntax in coding. 
+- gutenbergr -- This library provides access to the The Gutenburg Project metadata and full text of more than 60000 works in various languages.
+- ggplot2   -- This allows us to perform various graphing tasks 
+
+
+### Development Libraries 
+
+- ggiraphExtra -- This allows us to perform various graphing tasks such as interactive plots 
+- ggiraph      -- To create different flavors of radar graphs
+- ggradar      -- To create different flavors of radar graphs
+    
+    
 
 Loading our Libraries 
 ```{r}
-library(DBI)
 library(tidyverse)
 library(tidytext)
 library(hunspell)
 library(glue)
 library(gutenbergr)
 library(ggplot2)
-library(jsonlite)
-library(httr)
+#devtools::install_github("ricardo-bion/ggradar", dependencies = TRUE)
+#devtools::install_github("cardiomoon/ggiraphExtra")
+library(ggiraphExtra)
+library(ggiraph)
+library(ggradar)
 ```
+
+## Data Generation and Preparation 
+
+First we must prepare the system itself for the languages we will be using Latin and English. To do this I will be installing a library  reference for hunspell to use and store that in my Data Folder in this project.
+Incidentally these libraries are the same as required to perform spell checking in a particular natural language and can be used system wide.
+
+
+Latin Library 
+The English library is already part of the standard library loaded into the system.  
+
+  
+
+
+
+
+
 
 Utility functions 
 ```{r}
 
-#let me send in  lists of words as space separated strings for convenience
+#let me send in lists of words as space separated strings for convenience
 qq <- function(alist) {  list = strsplit(alist," ", fixed= T); list  = list[[1]] }
 
-
+# Basic word frequency analysis on a provided text
 colorwords2 = function(df) {
     wordhist <- df %>% unnest_tokens(word,text) %>% 
         filter( word %in% c("white","black","red","yellow","green","blue","orange","indigo", "violet" ) ) %>% count(word)
     wordhist }
 
-
-
-
- 
 ```
 
 
@@ -655,7 +712,7 @@ works
 # colors <- c('red','green','blue','purple','black','orange' )
 
  for ( i in 1:length(works)) {
-   WFtitle = glue(works[i])
+   WFtitle = works[i]
    p <- ggplot(longwfAnalysis %>% filter(WorkTitle == WFtitle), aes(words,count,fill=WorkTitle)) + 
      geom_col()+
      scale_fill_manual(values = c(colors[i]))+
