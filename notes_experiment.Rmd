@@ -601,12 +601,6 @@ theme(axis.text.x = element_text(angle = 90))
 ```
 
 
-```{r}
-```
-
-
-```{r}
-```
 
 
 Right away we can see that the information contained in each edition varies by a significant amount. This can be explained by front matter difference, different approaches to translation, and additional matter inserted into the edition.
@@ -648,6 +642,8 @@ for( row in 1:nrow(Analysis)){
 
 
 ```
+#### Word Frequency Analysis
+
 Now that we have an English word assigned to each Latin word that is in our concordance we can perform a word-frequency analysis on the original Latin work.  We'll do this for each edition and display them separately.
 First we will create a list of our concordance words to filter the WF analysis for each work we generate.
 ```{r}
@@ -717,29 +713,46 @@ works
      geom_col()+
      scale_fill_manual(values = c(colors[i]))+
      theme(axis.text.x = element_text(angle = 90)) + 
-     labs(title = paste(WFtitle,"- Concordance Word Frequency Analysis"))
+     labs(title = paste(WFtitle,"- Concordance Word Frequency Analysis" ))
  print(p)
  }
 
 ```
-## Conclusion
-
-It appears that a collection of common adjectives can be shown to give a measure of 'reliability'  of a translation.  
-
-## Further Research 
-
-A number of things could enhance this investigation, expanding to multiple ediotions of the same book in the same language should show us a 'control'  in natural divergence as more material is added or revised in each edition.   
-
-Additional context clues using NLP could enhance or eliminate a need for a concordance.  A broader concordance might capture a more solid signature. Development of a metric to quantify 'distance'  from the original or first edition could be ddeveloped based on the wf-signature of the original document.   
+Finally we can look at the proportional occurrance of each word in the concordance
 
 ```{r}
 
+ggplot(longwfAnalysis, aes(words,count,fill=WorkTitle)) + 
+     geom_col(position = "fill")+
+     
+     theme(axis.text.x = element_text(angle = 90)) + 
+     labs(title = "Concordance Word Frequency Proportion Analysis" )
+
+```
+
+
+
+
+
+####  Translation Congruence
+
+Using a fixed order of the concordance as a 'lens' we can view the shape of each translation compared to the original.  Here we first look at each shape for each work and then compare them pairwise with the original Latin work.
+
+Ideally the resulting shapes would share all points of congruence with the original.  The 'best' translation should be the best fit to the shape of the original text.   This comparison is done using absolute values collected and presented in a radar chart.  Again the shape and congruence are more important than the actual numbers for this analysis.  
+
+
+
+```{r}
+
+ggRadar(data=wfAnalysis_radar,aes(color= WorkTitle, facet=WorkTitle),interactive=T,alpha = .5, rescale = F, size = 1)
 
 #wfAnalysis_radar
-i=2
+#colors to use in the generated graphs in row-order
 colors <- c('red','green','blue','purple','black','orange' )
 for ( i in 2:6){
- # wfAnalysis_radar %>% slice(1,i)
+ # Positional retrieval of the Title.  We built the table so we know the 1st one is the original
+  Original    <-  wfAnalysis_radar %>%slice(1) %>%  select(WorkTitle) %>% pull()
+  Translation <-  wfAnalysis_radar %>%slice(i) %>%  select(WorkTitle) %>% pull()
   p <- ggradar( 
       wfAnalysis_radar %>% slice(1,i),
       values.radar = c("0", "140", "280"),
@@ -751,10 +764,113 @@ for ( i in 2:6){
       group.colours = qq(paste(colors[1], colors[i] ))
 
 
-      ) + labs( title = "labs")
+      ) + 
+    labs( title = paste ( Original, "vs", Translation  ))+
+    theme(plot.title = element_text(hjust = 1.0, vjust=2.12))
+  
   #
   print(p)
 }
+```
+
+#### A Distance metric 
+
+Congruence gives a good visual idea of the differences between translations but doesn't give us a quantitative value with which to judge the 'closeness' to the original that we are after. We proceed as follows:
+
+- Our x-y plane will be x representing the n-dimensional euclidean distance between the coordinates composed of each of our variables in the concordance, the Y value representing the total number of words in the work.
+- TheLatinAeneid is assigned coordinate of 0,0  
+- The coordinates for each work would be \[ x = \sqrt{ (t_{w1} - l{w_{1}})^2 + \dots + (t_{w20} - l{w_{20}})^2  } \]  and \[ y = \sqrt{ (t_{wordtotal} - l{w_{wordtotal}}/1000)^2} \]
+
+
+```{r}
+
+#will need
+#Text sizes 
+#wfAnalysis_radar
+
+# get distance (input an WF analysis original as row 1)
+d_word = function( WF, translation) {
+  org         = as.numeric(WF %>% select(everything(), -c(WorkTitle)) %>% slice(1))
+  trans       = as.numeric(WF %>% select(everything(), -c(WorkTitle)) %>% slice(translation))
+  dis = 0 
+  #print(trans)
+  #print(org)
+  dis = sum ((trans - org)^2) 
+  sqrt(dis)
+  
+}
+
+d_text = function( WF, translation) {
+  #print(Text_sizes )
+  org         = semi_join(Text_sizes,wfAnalysis_radar, by=c("title"="WorkTitle") ) %>% slice(1) %>% select(wordcount) %>% pull()
+  trans       = semi_join(Text_sizes,wfAnalysis_radar, by=c("title"="WorkTitle") ) %>% slice(translation) %>% select(wordcount) %>% pull()
+  #print (org)
+  #print(trans)
+
+    dis = 0 
+  dis = sum (((trans - org)/1000) ^2)
+  sqrt(dis)
+  
+}
+
+workframe <- tibble(Title= as.character(), x=as.double(), y=as.double())
+
+ for (i in 1: nrow(wfAnalysis_radar)) {
+   y = d_text(wfAnalysis_radar,i)
+   x = d_word(wfAnalysis_radar,i)
+   title = wfAnalysis %>% slice(i) %>% select(WorkTitle) %>%  pull()
+   workmaprow <- tibble(Title= title, x=x, y=y)
+   workframe = workframe %>% add_row(workmaprow)
+ }
+
+workframe %>% ggplot( aes(x,y,color=Title)) + 
+  geom_point(size=4)+
+  xlab( "21-d Euclidean Distance (concordance observations)")+
+  ylab( "Euclidean Distance - Total words in Text/1000")
+
+
+
+```
+
+
+
+
+
+## Conclusion
+
+It appears that a collection of common adjectives can be shown to give a measure of 'reliability'  of a translation.  
+
+## Further Research 
+
+A number of things could enhance this investigation, expanding to multiple ediotions of the same book in the same language should show us a 'control'  in natural divergence as more material is added or revised in each edition.   
+
+Additional context clues using NLP could enhance or eliminate a need for a concordance.  A broader concordance might capture a more solid signature. Development of a metric to quantify 'distance'  from the original or first edition could be developed based on the wf-signature of the original document.   
+
+## Works Cited 
+
+Moffit, Mitchell. "Why The Ancient Greeks Couldn't See Blue." Youtube, uploaded by AsapSCIENCE. 20 Nov 2020, https://www.youtube.com/watch?v=D1-WuBbVe2E,
+
+
+
+Foster, Timothy. "The Latin Dictionary." latindictionary.wikidot.com,Feb 13, 2018, http://latindictionary.wikidot.com/adjective:ater.
+
+
+
+Murzintcev, Nikita Ph.D. "Karl Zeller's  variant hunspell Dictionary." Latin-dict.github.io, Nov 11, 2020, https://latin-dict.github.io/docs/hunspell.html#:~:text=Hunspell%20is%20a%20spell%20checking,cur%C3%A2%E2%80%9D%20or%20%E2%80%9Cmal%C3%A8%E2%80%9D
+
+.
+
+[GitHub - mrakia/hunspell-ancient-greek: The Ancient Greek dictionary for Hunspell (grc_GR for Notepad++, Google Chrome, Vivaldi etc).](https://github.com/mrakia/hunspell-ancient-greek)
+
+
+
+Castagnetto, JM. "Stemming with SnowballC vs hunspell." GitHub, Feb 12, 2020, (https://gist.github.com/jmcastagnetto/3b0776f7558621e5d06a2a0981b20c2e)
+
+
+
+Krager, Bernd. "Latin Declension Tables" Cactus2000, 2021, [gener&#257;tor: Latin nouns, Cactus2000](https://latin.cactus2000.de/noun/shownoun_en.php?n=generator)
+
+```{r}
 
 ```
 
@@ -765,7 +881,7 @@ for ( i in 2:6){
    ggRadar(data=wfAnalysis_radar %>% slice(1,5),aes(color=WorkTitle),interactive=T,alpha = .5, rescale = F )
    ggRadar(data=wfAnalysis_radar %>% slice(1,6),aes(color=WorkTitle),interactive=T,alpha = .5, rescale = F )
   
-   ggRadar(data=wfAnalysis_radar,aes(color= WorkTitle, facet=WorkTitle),interactive=T,alpha = .5, rescale = F, size = 1 )
+   
    
 #}
 ```
