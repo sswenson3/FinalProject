@@ -1,7 +1,12 @@
 ---
 title: "Developing a Metric for Measuring Translation Faithfulness"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 ## Introduction
 
 Basic Text analytics, also known as text mining, can be used to glean information or data from unstructured sources such as books or prose.  Initially, after watching a video on YouTube (Moffit 2020) talking about Introduction of color into literature has a specific order I wondered whether we could use text analytics to determine approximately when in a civilization a work was created.  Expanding on that perhaps we could identify a specific period that a work was created based on it's thumbprint derived from analyzing its text as data. One of the works cited in the video was "The Iliad" and that the word blue was not used.  So I performed a quick analysis of this work.
@@ -113,7 +118,7 @@ We will ignore this for now and construct a concordance of stems associated with
 ### Generating  and cleaning concordanance Data 
 First we selected 21 common adjective words.  These will form the basis of our concordance. I chose adjectives as they are descriptive and less likely to have a different idiomatic meaning in a language than verbs or nouns might.  Simple adjectives are also more likely to be common across a number of translations.  
 
-```{r,echo=false}
+```{r,echo=F}
 concordance_words = 
  c("black","white","red","yellow",
           "green","blue","orange","purple",
@@ -128,12 +133,12 @@ I retrieved data from a declension generator(Krüger 2020) for each of our selec
 
 
 Here is the raw text of one such file:
-```{r,echo=false}
+```{r,echo=F}
 exampledeclension <- read_file("Data/ater.declension.raw")
 exampledeclension
 ```
 This raw file is then converted to string containing all forms of the word and then converted to a list of words. 
-```{r, echo= false}
+```{r, echo= F}
 declension <- exampledeclension 
 declension<- str_replace_all(declension, ".*Adverb:.*\\r\\n","")
 declension <- str_replace_all(declension, "\\r\\n|\\t|,"," ") 
