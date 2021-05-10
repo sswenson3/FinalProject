@@ -9,7 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 ## Introduction
 
-Basic Text analytics, also known as text mining, can be used to glean information or data from unstructured sources such as books or prose.  Initially, after watching a video on YouTube (Moffit 2020) talking about Introduction of color into literature has a specific order I wondered whether we could use text analytics to determine approximately when in a civilization a work was created.  Expanding on that perhaps we could identify a specific period that a work was created based on it's thumbprint derived from analyzing its text as data. One of the works cited in the video was "The Iliad" and that the word blue was not used.  So I performed a quick analysis of this work.
+Basic Text analytics, also known as text mining, can be used to glean information or data from unstructured sources such as books or prose.  Initially, after watching a video on YouTube (Moffit 2020) talking about Introduction of color into literature has a specific order, I wondered whether we could use text analytics to determine approximately when in a civilization a work was created.  Expanding on that perhaps we could identify a specific period that a work was created based on it's thumbprint derived from analyzing its text as data. One of the works cited in the video was "The Iliad" and that the word blue was not used.  So I performed a quick analysis of this work.
 
 Immediately, a problem was encountered. Performing the initial analysis showed that translators had not been faithful to the original text!  
 
@@ -36,10 +36,10 @@ I would construct a word frequency analysis and propose a rule of measure.  The 
 ## Packages Required
 
 - tidyverse -- Provides access to dplyer and tidy tools for handling data frames
-- tidytext  -- Provides tidy style tools for text mining both analytics and analysis.
-- hunspell  -- This library provides access to some NLP (Natural Language Processing) functions that will allow us to perform deeper analysis based on language rules and relations.  This library is one that is popularly used to perform spellchecking in many systems and applications.
-- glue      -- This provides a simple variable interpolation interface, simplifying some syntax in coding. 
-- gutenbergr -- This library provides access to the The Gutenburg Project metadata and full text of more than 60000 works in various languages.
+- tidytext  -- Provides tidy style tools for text mining both analytics and analysis
+- hunspell  -- This library provides access to some NLP (Natural Language Processing) functions that will allow us to perform deeper analysis based on language rules and relations.  This library is one that is popularly used to perform spellchecking in many systems and applications
+- glue      -- This provides a simple variable interpolation interface, simplifying some syntax in coding
+- gutenbergr -- This library provides access to the The Gutenburg Project metadata and full text of more than 60000 works in various languages
 - ggplot2   -- This allows us to perform various graphing tasks 
 
 
@@ -59,6 +59,7 @@ library(hunspell)
 library(glue)
 library(gutenbergr)
 library(ggplot2)
+#uncomment and run once if installing 
 #devtools::install_github("ricardo-bion/ggradar", dependencies = TRUE)
 #devtools::install_github("cardiomoon/ggiraphExtra")
 library(ggiraphExtra)
@@ -69,11 +70,11 @@ library(ggradar)
 ## Data Generation and Preparation 
 
 First we must prepare the system itself for the languages we will be using; Latin and English.
-To have usable data we will need to be able to process these languages in some way.  We are performing text analytics to answer our questions. Of the seven basic operations (Mohler 2020) text analytics we will be performing tokenization, and a modified form of part of speech tagging and syntax chunking called stemming.
+To have usable data, we will need to be able to process these languages in some way.  We are performing text analytics to answer our questions. Of the seven basic operations (Mohler 2020) of text analytics we will be performing tokenization, and a modified form of part of speech tagging and syntax chunking called stemming.
 
 To handle tokenization we rely on the tidytext libary. Tidytext will also perform some pre-processing for us. When processing words it will convert input into utf-8 lowercase text.  It will then be the tokenizer, allowing us to separate a text source into a list of separate words.
 
-Stemming refers to identifying the root of a particular word.  This is important to our problem as Latin is a heavily inflected language. Each word can literally have hundreds of different forms depending on Voice, Number, Gender( masculine, feminine, and neuter), and Case ( part of speech). 
+Stemming refers to identifying the root of a particular word.  This is important to our problem as Latin is a heavily inflected language. Each word can literally have hundreds of different forms depending on Voice, Number, Gender( masculine, feminine, and neuter), and Case ( part of speech ). 
 The hunspell library and the language reference files for Latin are installed to handle this operation. This reference is stored in the Data Folder in this project. The English library is already part of the standard library loaded into the system.  The hunspell library provides access to a variety of NLP functions and is commonly used as a real time spell checker in modern computer systems.  
 
 To create a way to compare different works we will create a list of 21 common adjectives and a concordance of stemmed translations to Latin. This will allow the tokenization and stemming of the original language work to be compared to our concordance
@@ -129,7 +130,7 @@ concordance_words =
 concordance_words
 ```
 
-I retrieved data from a declension generator(Krüger 2020) for each of our selected words. There was no API available so the HTML was cut and Pasted to word.declension.raw files in the project Data folder. I then created  a function to read these raw text files and parse out the desired data.
+I retrieved data from a declension generator(Krüger 2020) for each of our selected words. There was no API available so the HTML was cut and pasted to word.declension.raw files in the project Data folder. I then created  a function to read these raw text files and parse out the desired data.
 
 
 Here is the raw text of one such file:
@@ -829,7 +830,7 @@ workframe %>% ggplot( aes(x,y,color=Title)) +
   scale_color_manual(values = c(colors))+
   xlab( "21-d Euclidean Distance (concordance observations)")+
   ylab( "Euclidean Distance - Total words in Text/1000")+
-  labs('Euclidean Distance of Latin Text and several translations')
+  labs(title = 'Euclidean Distance of Latin Text', subtitle= "Latin vs several translations and an unrelated work")
 ```
 
 Note we have a better idea of how similar the translations are to the original, and we can identify "The Jungle" as different from the original and the translations. 
