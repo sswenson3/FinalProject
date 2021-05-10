@@ -683,6 +683,8 @@ wf = TranslationAeneid49844 %>% unnest_tokens(word,text) %>%  filter( word %in% 
 
 wf <- wf %>% pivot_wider(names_from = word, values_from = n) %>% mutate(WorkTitle = 'TranslationAeneid49844') %>% select(WorkTitle,everything())
 
+wfAnalysis <- add_row(wfAnalysis,wf)
+
 wf = USTheJungle %>% unnest_tokens(word,text) %>%  filter( word %in% concordance_words)%>% select(word)  %>% count(word)
 
 wf <- wf %>% pivot_wider(names_from = word, values_from = n) %>% mutate(WorkTitle = 'USTheJungle') %>% select(WorkTitle,everything())
@@ -747,8 +749,8 @@ ggRadar(data=wfAnalysis_radar,aes(color= WorkTitle, facet=WorkTitle),interactive
 
 #wfAnalysis_radar
 #colors to use in the generated graphs in row-order
-colors <- c('red','green','blue','purple','black','orange' )
-for ( i in 2:6){
+colors <- c('red','green','blue','purple','black','orange','yellow' )
+for ( i in 2:7){
  # Positional retrieval of the Title.  We built the table so we know the 1st one is the original
   Original    <-  wfAnalysis_radar %>%slice(1) %>%  select(WorkTitle) %>% pull()
   Translation <-  wfAnalysis_radar %>%slice(i) %>%  select(WorkTitle) %>% pull()
