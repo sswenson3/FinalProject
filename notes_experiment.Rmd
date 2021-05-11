@@ -1,5 +1,7 @@
 ---
 title: "Developing a Metric for Measuring Translation Faithfulness"
+author: "Steven Swenson"
+date: "DATA 2401"
 output:
   html_document:
     df_print: paged
