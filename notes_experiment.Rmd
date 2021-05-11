@@ -541,13 +541,12 @@ lookup = function(word) {
 }
 
 ```
-This completes our proposed concordance.  Next we'll load in an original Latin manuscript, tokenize it , stem these words , Join our concordance to this then perform an frequency analysis on the result.   This will be our base line to compare translations. 
+This completes our proposed concordance.  Next we'll load in an original Latin manuscript, tokenize it , stem these words , Join our concordance to this, and then perform a frequency analysis on the result.   This will be our base line to compare translations. 
 
 
 ### Loading Raw text Data 
 
-Using gutenbergr I will load the text of the Aeneid in Latin and several of its English translations. I will also load "The Jungle" by Umpton Sinclair for comparison
-.
+Using the gutenbergr library, I will load the text of the Aeneid in Latin and several of its English translations. I will also load "The Jungle" by Upton Sinclair for comparison.
 
 ```{r,echo =FALSE}
 gutenberg_metadata %>% select(title,author,gutenberg_id,language) %>% filter(grepl("[Ae|Æ]neid",title) & author=="Virgil")
@@ -717,6 +716,8 @@ colors <- c('red','green','blue','purple','black','orange','yellow' )
  }
 
 ```
+
+
 This shows us some quantitative differences between each edition of the work. but we don't yet have a good idea of distance between them. 
 
 Next we can look at the proportional occurrence of each word in the concordance using a stacked bar graph comparing each variable on a normalized scale.  An ideal or close translation would have identical proportion as the original for each variable. 
@@ -781,8 +782,9 @@ Congruence gives a good visual idea of the differences between translations but 
 
 - Our x-y plane will be x representing the n-dimensional euclidean distance between the coordinates composed of each of our variables in the concordance, the Y value representing the total number of words in the work.
 - TheLatinAeneid is assigned coordinate of 0,0  
-- The coordinates for each work would be \[ x = \sqrt{ (t_{w1} - l{w_{1}})^2 + \dots + (t_{w20} - l{w_{20}})^2  } \]  and \[ y = \sqrt{ (t_{wordtotal} - l{w_{wordtotal}}/1000)^2} \]
+- The coordinates for each work would be \[ x = \sqrt{ (t_{w_{0}} - l{w_{0}})^2 + \dots + (t_{w_{20}} - l{w_{20}})^2  } \]  and \[ y = \sqrt{ (t_{wordtotal} - l{w_{wordtotal}}/1000)^2} \]
 
+Where t_{w_{x}} are the translation's concordance score, l_{w_{x}} is the Latin Edition concordance score.  
 
 ```{r}
 
@@ -833,7 +835,7 @@ workframe %>% ggplot( aes(x,y,color=Title)) +
   labs(title = 'Euclidean Distance of Latin Text', subtitle= "Latin vs several translations and an unrelated work")
 ```
 
-Note we have a better idea of how similar the translations are to the original, and we can identify "The Jungle" as different from the original and the translations. 
+Note we have a better idea of how similar the translations are to the original, and we can identify "The Jungle" as different from the original and the  other translations.   Of note is Translation49844.  On examination more than half of the content of this edition is commentary and assorted unrelated short literary works.
 
 
 
@@ -862,6 +864,6 @@ https://www.lexalytics.com/lexablog/text-analytics-functions-explained.
 
 Murzintcev, Nikita Ph.D. "Karl Zeller's  variant hunspell Dictionary." Latin-dict.github.io, Nov 11, 2020, https://latin-dict.github.io/docs/hunspell.html#:~:text=Hunspell%20is%20a%20spell%20checking,cur%C3%A2%E2%80%9D%20or%20%E2%80%9Cmal%C3%A8%E2%80%9D
 
-Petterson, Daniel, and Rosengren Amelie. "Latin Dictionaries. 4 searchable LAtin Dictionaries" Latinitum.  2020,  https://www.latinitium.com/latin-dictionaries?t=lsn6076,lsn6077
+Petterson, Daniel, and Rosengren Amelie. "Latin Dictionaries. 4 searchable Latin Dictionaries" Latinitum.  2020,  https://www.latinitium.com/latin-dictionaries?t=lsn6076,lsn6077
 
 Rakia, M. [GitHub - mrakia/hunspell-ancient-greek: The Ancient Greek dictionary for Hunspell (grc_GR for Notepad++, Google Chrome, Vivaldi etc).](https://github.com/mrakia/hunspell-ancient-greek)
